@@ -1,0 +1,329 @@
+Program.Sub.ScreenSU.Start
+gui.Form1..create
+gui.Form1..caption("ATG GEA Payroll Export")
+gui.Form1..size(4710,3885)
+gui.Form1..position(0,0)
+gui.Form1..event(unload,form1_unload)
+gui.Form1..alwaysontop(False)
+gui.Form1..fontname("Arial")
+gui.Form1..fontsize(8)
+gui.Form1..forecolor(0)
+gui.Form1..fontstyle(,,,,)
+gui.Form1..BackColor(-2147483633)
+gui.Form1..controlbox(True)
+gui.Form1..maxbutton(True)
+gui.Form1..minbutton(True)
+gui.Form1..mousepointer(0)
+gui.Form1..moveable(True)
+gui.Form1..sizeable(True)
+gui.Form1..ShowInTaskBar(True)
+gui.Form1..titlebar(True)
+gui.Form1.frame1.create(frame)
+gui.Form1.frame1.caption("Enter Pay Date Range")
+gui.Form1.frame1.size(4050,2385)
+gui.Form1.frame1.position(200,200)
+gui.Form1.frame1.visible(True)
+gui.Form1.frame1.fontname("Arial")
+gui.Form1.frame1.fontsize(8)
+gui.Form1.cmdOk.create(button)
+gui.Form1.cmdOk.caption("Ok")
+gui.Form1.cmdOk.visible(True)
+gui.Form1.cmdOk.size(855,375)
+gui.Form1.cmdOk.zorder(0)
+gui.Form1.cmdOk.position(3290,2760)
+gui.Form1.cmdOk.enabled(True)
+gui.Form1.cmdOk.fontname("Arial")
+gui.Form1.cmdOk.fontsize(8)
+gui.Form1.cmdOk.event(click,cmdok_click)
+gui.Form1.datepickerFrm.create(datepicker)
+gui.Form1.datepickerFrm.visible(True)
+gui.Form1.datepickerFrm.size(1935,285)
+gui.Form1.datepickerFrm.zorder(0)
+gui.Form1.datepickerFrm.position(1035,600)
+gui.Form1.datepickerFrm.enabled(True)
+gui.Form1.datepickerFrm.parent("frame1")
+gui.Form1.datepickerFrm.checkbox(False)
+gui.Form1.datepickerThru.create(datepicker)
+gui.Form1.datepickerThru.visible(True)
+gui.Form1.datepickerThru.size(1935,285)
+gui.Form1.datepickerThru.zorder(0)
+gui.Form1.datepickerThru.position(1035,1635)
+gui.Form1.datepickerThru.enabled(True)
+gui.Form1.datepickerThru.parent("frame1")
+gui.Form1.datepickerThru.checkbox(False)
+gui.Form1.lbl1.create(label,"Through",True,1620,255,1,1035,1145,True,2,Arial,8,-2147483633,0)
+gui.Form1.lbl1.parent("frame1")
+
+
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'Coded by: jct
+'Project Start Date: 10/28/2010
+'customer GEARENCH
+'Hooks:
+'  custom on new menu item
+
+F.ODBC.Connection!Con.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass,500)
+Gui.Form1..Show
+
+
+Program.Sub.Main.End
+
+program.sub.form1_unload.start
+
+
+F.ODBC.Connection!Con.Close
+F.Intrinsic.Control.End
+
+program.sub.form1_unload.end
+
+program.sub.cmdok_click.start
+
+Gui.Form1.cmdOk.Enabled(false)
+
+V.Local.sSel.Declare(String)
+V.Local.sSelB.Declare(String)
+V.Local.sSelX.Declare(String)
+V.Local.sSelY.Declare(String)
+V.Local.sdateFrm.Declare(String)
+V.Local.sDateThru.Declare(String)
+V.Local.sDateWk.Declare(String)
+V.Local.sDateCompare.Declare(String)
+V.Local.sRecord.Declare(String)
+V.Local.sCode.Declare(String)
+V.Local.sLine.Declare(String)
+V.Local.sExport.Declare(String)
+V.Local.sHours.Declare(String)
+V.Local.sFile.Declare(String)
+V.Local.sNeg.Declare(String)
+V.Local.sHolArray.Declare(String)
+V.Local.sDateArray.Declare(String)
+V.Local.sFormatArray.Declare(String)
+V.Local.fHours.Declare(Float)
+V.Local.fHHMM.Declare(Float)
+V.Local.sMin.Declare(String)
+V.Local.fSec.Declare(Float)
+V.Local.sHolPay.Declare(String)
+V.Local.iMod.Declare(Long)
+V.Local.lCode.Declare(Long)
+V.Local.lHndl.Declare(Long)
+V.Local.lFor.Declare(Long)
+V.Local.bHol.Declare(Boolean)
+V.Local.fRem.Declare(Float)
+
+F.Intrinsic.String.Concat(V.Caller.FilesDir,"\PY_Export.txt",V.Local.sFile)
+	F.Intrinsic.File.GetHandle(V.Local.lHndl)
+	F.Intrinsic.File.OpenForWrite(V.Local.sFile,V.Local.lHndl)
+V.Local.sExport.Redim(0,5)
+
+F.Intrinsic.String.Format(V.Screen.Form1!datepickerFrm.Value,"yyyymmdd",V.Local.sdateFrm)
+F.Intrinsic.String.Format(V.Screen.Form1!datepickerThru.Value,"yyyymmdd",V.Local.sDateThru)
+
+'====HOLIDAY DATES====
+F.ODBC.Connection!Con.OpenRecordsetRO("rstA","select * from V_HOLIDAY_SCHED")
+	F.ODBC.Con!rstA.Record2String(V.Local.sHolArray)
+F.ODBC.Con!rstA.Close
+
+F.Intrinsic.String.Split(V.Local.sHolArray,"*!*",V.Local.sHolArray)
+F.Intrinsic.Control.For(V.Local.lFor,3,V.Local.sHolArray.UBound,1)
+	F.Intrinsic.String.Format(V.Local.sHolArray(v.Local.lFor),"yyyymmdd",V.Local.sDateCompare)
+	F.Intrinsic.Control.If(V.Local.sDateCompare,>=,V.Local.sdateFrm)
+	F.Intrinsic.Control.AndIf(V.Local.sDateCompare,<=,V.Local.sDateThru)
+		V.Local.bHol.Set(True)
+		F.Intrinsic.String.Concat(V.Local.sDateArray,"*!*",V.Local.sDateCompare,V.Local.sDateArray)
+		F.Intrinsic.String.Concat(V.Local.sFormatArray,"*!*",V.Local.sHolArray(v.Local.lFor),V.Local.sFormatArray)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Next(V.Local.lFor)
+
+F.Intrinsic.String.Format(V.Local.sHolArray(0),"0.00",V.Local.sHolPay)
+
+F.Intrinsic.String.Split(V.Local.sDateArray,"*!*",V.Local.sDateArray)
+F.Intrinsic.String.Split(V.Local.sFormatArray,"*!*",V.Local.sFormatArray)
+
+F.Intrinsic.String.Format(V.Screen.Form1!datepickerFrm.Value,"yyyy-mm-dd",V.Local.sdateFrm)
+F.Intrinsic.String.Format(V.Screen.Form1!datepickerThru.Value,"yyyy-mm-dd",V.Local.sDateThru)
+
+'====CREATE EXPORT====
+F.Intrinsic.File.WriteLine(V.Local.lHndl,"#BadgeNumber,#EmployeeID,#CompanyID,#DateWorked,#Amount,#EarningsID")
+
+' for each employee with timat hours earned in th period
+F.Intrinsic.String.Concat("select distinct EMPLOYEE from V_TIME_ATTENDANCE where CHARGE_DATE between '",V.Local.sdateFrm,"' and '",V.Local.sDateThru,"' order by EMPLOYEE,CHARGE_DATE",V.Local.sSelX)
+F.ODBC.Connection!Con.OpenRecordsetRO("rstX",V.Local.sSelX)
+	F.Intrinsic.Control.Dountil(V.ODBC.Con!rstX.EOF,=,True)
+
+		
+		F.Intrinsic.String.Concat("select distinct  '',EMPLOYEE,'01',CHARGE_DATE, HOURS_HH, HOURS_MM, EARNINGS_CODE from V_TIME_ATTENDANCE where CHARGE_DATE between '",V.Local.sdateFrm,"' and '",V.Local.sDateThru,"' and EMPLOYEE='",V.ODBC.Con!rstX.FieldValTrim!EMPLOYEE,"' and EARNINGS_CODE<>'' ",V.Local.sSel)
+		F.Intrinsic.String.Concat(V.Local.sSel,"union select distinct  '',EMPLOYEE,'01',CHARGE_DATE,'' as HOURS_HH,'' as HOURS_MM, EARNINGS_CODE from V_TIME_ATTENDANCE where CHARGE_DATE between '",V.Local.sdateFrm,"' and '",V.Local.sDateThru,"' and EMPLOYEE='",V.ODBC.Con!rstX.FieldValTrim!EMPLOYEE,"' and EARNINGS_CODE='' order by EMPLOYEE,CHARGE_DATE",V.Local.sSel)
+		F.ODBC.Connection!Con.OpenRecordsetRO("rstA",V.Local.sSel)
+			F.Intrinsic.Control.DoUntil(V.ODBC.Con!rstA.EOF,=,True)
+				V.Local.fHours.Set(0)
+				V.Local.fHHMM.Set(0)
+				V.Local.fSec.Set(0)
+				V.Local.sMin.Set("")
+
+				F.ODBC.Con!rstA.Record2String(V.Local.sRecord)
+					F.Intrinsic.String.Split(V.Local.sRecord,"*!*",V.Local.sRecord)
+
+					F.Intrinsic.String.LPad(V.Local.sRecord(5),"0",2,V.Local.sRecord(5))
+					F.Intrinsic.String.Concat(V.Local.sRecord(4),".",V.Local.sRecord(5),V.Local.sHours)
+					F.Intrinsic.String.Format(V.Local.sRecord(3),"yyyy-mm-dd",V.Local.sDateWk)
+
+
+				F.Intrinsic.Control.If(V.Local.sRecord(6).Trim,<>,"")
+					V.Local.lCode.Set(V.Local.sRecord(6))
+
+					F.Intrinsic.Control.If(V.Local.lCode,<,6)
+						F.Intrinsic.String.Concat("select EARNINGS_DESC_",V.local.lcode," as CODE from V_PAY_EARN_1",V.Local.sSelB)
+					F.Intrinsic.Control.Else
+						F.Intrinsic.Math.Sub(V.Local.lCode,5,V.Local.lCode)
+						F.Intrinsic.String.Concat("select EARNINGS_DESC_",V.local.lcode," as CODE from V_PAY_EARN_2",V.Local.sSelB)
+					F.Intrinsic.Control.EndIf
+						F.ODBC.Connection!Con.OpenRecordsetRO("rstB",V.Local.sSelB)
+							F.Intrinsic.Control.If(V.ODBC.Con!rstB.EOF,=,False)
+								V.Local.sCode.Set(V.ODBC.Con!rstB.FieldVal!CODE)
+							F.Intrinsic.Control.EndIf
+						F.ODBC.Con!rstB.Close
+
+				F.Intrinsic.Control.Else
+
+					V.Local.sCode.Set("REG")
+'					F.Intrinsic.String.Concat("select HOURS_WORKED as HW from V_JOB_DETAIL where EMPL='",V.Local.sRecord(1),"' and BALANCED_AS_DATE='",V.Local.sDateWk,"'",V.Local.sSelB)
+'					F.ODBC.Connection!Con.OpenRecordsetRO("rstB",V.Local.sSelB)
+'						F.Intrinsic.Control.DoUntil(V.ODBC.Con!rstB.EOF,=,True)
+'							F.Intrinsic.Control.If(V.ODBC.Con!rstB.FieldVal!hw,<>,0)
+'								F.Intrinsic.String.Split(V.ODBC.Con!rstB.FieldVal!hw,".",V.Local.fHHMM)
+'									V.Local.fHHMM.RedimPreserve(0,1)
+'
+'									F.Intrinsic.String.RPad(V.Local.fHHMM(1),"0",2,V.Local.fHHMM(1))
+'									F.Intrinsic.Math.Div(V.Local.fHHMM(1),100,V.Local.fHHMM(1))
+'									F.Intrinsic.Math.Mult(V.Local.fHHMM(1),60,V.Local.fHHMM(1))
+'									F.Intrinsic.Math.Round(V.Local.fHHMM(1),0,V.Local.fHHMM(1))
+'										F.Intrinsic.Control.If(V.ODBC.Con!rstB.FieldValfloat!hw,<,0)
+'											F.Intrinsic.Math.Mult(V.Local.fHHMM(1),-1,V.Local.fHHMM(1))
+'										F.Intrinsic.Control.EndIf
+'
+'								F.Intrinsic.Math.Add(V.Local.fSec,V.Local.fHHMM(1),V.Local.fSec)
+'								F.Intrinsic.Math.Add(V.Local.fMin,V.Local.fHHMM(0),V.Local.fMin)
+'							F.Intrinsic.Control.EndIf
+'
+'						F.ODBC.Con!rstB.MoveNext
+'						F.Intrinsic.Control.Loop
+'					F.ODBC.Con!rstB.Close
+'
+' 07/17/2013 - JCT - incorrect hours calcualtion after 2013.1 update, changed selection
+					F.Intrinsic.String.Concat("select sum(HOURS_WORKED) as HW from V_JOB_DETAIL where EMPL='",V.Local.sRecord(1),"' and BALANCED_AS_DATE='",V.Local.sDateWk,"'",V.Local.sSelB)
+					F.ODBC.Connection!Con.OpenRecordsetRO("rstB",V.Local.sSelB)
+						F.Intrinsic.Control.If(V.ODBC.Con!rstB.EOF,=,False)
+							V.Local.fHours.Set(V.ODBC.Con!rstB.FieldVal!HW)
+						F.Intrinsic.Control.EndIf
+					F.ODBC.Con!rstB.Close
+
+					F.Intrinsic.Math.Round(V.Local.fHours,2,V.Local.fHours)
+					F.Intrinsic.String.Format(V.Local.fHours,"0.00",V.Local.sHours)
+					F.Intrinsic.String.Split(V.Local.sHours,".",V.Local.sMin)
+					V.Local.sMin.RedimPreserve(0,1)
+					F.Intrinsic.Math.Mod(V.Local.sMin(1).Float,25,V.Local.iMod)
+					F.Intrinsic.Control.If(V.Local.iMod,>,0)
+						F.Intrinsic.Math.Div(V.Local.sMin(1).Float,100,V.Local.fRem)
+						F.Intrinsic.Math.Mult(60,V.Local.fRem,V.Local.fRem)
+						F.Intrinsic.Control.CallSub(Decimal,"REM",V.Local.fRem)
+						F.Intrinsic.Math.Add(V.Local.sMin(0).Float,V.Args.REM.Float,V.Local.fHours)
+					F.Intrinsic.Control.EndIf
+
+					F.Intrinsic.String.Format(V.Local.fHours,"0.00",V.Local.sHours)
+
+				F.Intrinsic.Control.EndIf
+
+					F.Intrinsic.String.Split(V.Local.sCode," ",V.Local.sCode)
+					V.Local.sRecord(6).Set(V.Local.sCode)
+
+
+				F.Intrinsic.String.Concat(V.Local.sRecord(0),",",V.Local.sRecord(1),",",V.Local.sRecord(2),",",V.Local.sRecord(3),",",V.Local.sHours,",",V.Local.sRecord(6),V.Local.sLine)
+
+				F.Intrinsic.Control.If(V.Local.sLine,<>,"")
+					F.Intrinsic.File.WriteLine(V.Local.lHndl,V.Local.sLine)
+				F.Intrinsic.Control.EndIf
+
+
+			F.ODBC.Con!rstA.MoveNext
+			F.Intrinsic.Control.Loop
+		F.ODBC.Con!rstA.Close
+
+
+
+		F.Intrinsic.Control.If(V.Local.bHol,=,True)
+			F.Intrinsic.String.Concat("select ELIG_HOL_DATE from V_EMPLOYEE_MSTR where EMPLOYEE='",V.Local.sRecord(1),"' and PR_NOT_ELIG_HOL<>'Y'",V.Local.sSelY)
+			F.ODBC.Connection!Con.OpenRecordsetRO("rstY",V.Local.sSelY)
+				F.Intrinsic.Control.If(V.ODBC.Con!rstY.EOF,=,False)
+					F.Intrinsic.Control.For(V.Local.lFor,1,V.Local.sDateArray.UBound,1)
+						F.Intrinsic.String.Format(V.ODBC.Con!rstY.FieldVal!ELIG_HOL_DATE,"yyyymmdd",V.Local.sDateWk)
+						F.Intrinsic.Control.If(V.Local.sDateWk,<=,V.Local.sDateArray(v.Local.lFor))
+							F.Intrinsic.String.Concat(V.Local.sRecord(0),",",V.Local.sRecord(1),",",V.Local.sRecord(2),",",V.Local.sFormatArray(v.local.lfor),",",V.Local.sHolPay,",HL",V.Local.sLine)
+								F.Intrinsic.File.WriteLine(V.Local.lHndl,V.Local.sLine)
+						F.Intrinsic.Control.EndIf
+					F.Intrinsic.Control.Next(V.Local.lFor)
+				F.Intrinsic.Control.EndIf
+			F.ODBC.Con!rstY.Close
+		F.Intrinsic.Control.EndIf
+
+
+	F.ODBC.Con!rstX.MoveNext
+	F.Intrinsic.Control.Loop
+F.ODBC.Con!rstX.Close
+
+
+F.Intrinsic.File.CloseFile(V.Local.lHndl)
+F.Intrinsic.Task.ShellExec(V.Local.lHndl,"open",V.Local.sFile,"","",1)
+
+F.Intrinsic.Control.CallSub(Form1_unload)
+
+program.sub.cmdok_click.end
+
+Program.Sub.decimal.Start
+
+V.Local.fRem.Declare(Float)
+
+
+F.Intrinsic.Control.If(V.Args.REM,>=,0)
+F.Intrinsic.Control.AndIf(V.Args.REM,<,7.5)
+	V.Local.fRem.Set(.0)
+	F.Intrinsic.Variable.AddRV("REM",V.Local.fRem)
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Args.REM,>=,7.6)
+F.Intrinsic.Control.AndIf(V.Args.REM,<,22.5)
+	V.Local.fRem.Set(.25)
+	F.Intrinsic.Variable.AddRV("REM",V.Local.fRem)
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Args.REM,>=,22.6)
+F.Intrinsic.Control.AndIf(V.Args.REM,<,37.5)
+	V.Local.fRem.Set(.5)
+	F.Intrinsic.Variable.AddRV("REM",V.Local.fRem)
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.EndIf
+
+
+F.Intrinsic.Control.If(V.Args.REM,>=,37.6)
+F.Intrinsic.Control.AndIf(V.Args.REM,<,52.5)
+	V.Local.fRem.Set(.75)
+	F.Intrinsic.Variable.AddRV("REM",V.Local.fRem)
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.EndIf
+
+V.Local.fRem.Set(1.0)
+F.Intrinsic.Variable.AddRV("REM",V.Local.fRem)
+F.Intrinsic.Control.ExitSub
+
+
+
+Program.Sub.decimal.End
+
+
